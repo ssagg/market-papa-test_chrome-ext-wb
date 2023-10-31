@@ -1,0 +1,64 @@
+<html>
+  <head>
+    <style>
+      body {
+        width: 300px;
+        height: 300px;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Hello Extensions</h3>
+    <div class="product-page__seller-wrap section-border">
+      <div class="seller-info__header table__header">
+        Ostatki
+        <div class="table" style="display: flex; flex-direction: column">
+          <div
+            class="item"
+            style="
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              grid-auto-rows: auto;
+            "
+          >
+            <p class="stock">Stock</p>
+            <p class="qty">qty</p>
+            <p class="time">time</p>
+          </div>
+          <div
+            class="item"
+            style="
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              grid-auto-rows: auto;
+            "
+          >
+            <p class="stock">Stock</p>
+            <p class="qty">qty</p>
+            <p class="time">time</p>
+          </div>
+        </div>
+        <button onclick="addItem()">Add</button>
+      </div>
+    </div>
+    <script>
+      function addItem() {
+        const table = document.querySelector(".table");
+        const item = document.createElement("div");
+        item.style =
+          "  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: auto;";
+        const stock = document.createElement("p");
+        stock.textContent = "Sklad";
+        const qty = document.createElement("p");
+        qty.textContent = "343";
+        const time = document.createElement("p");
+        time.textContent = "111";
+
+        table.appendChild(item);
+        item.appendChild(stock);
+        item.appendChild(qty);
+        item.appendChild(time);
+      }
+    </script>
+  </body>
+</html>
