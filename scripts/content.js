@@ -1,39 +1,52 @@
-let resp;
+chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
+  if (message.url) {
+    //for future use - dynamically getting url from requests intercepter
+    // console.log(message.url);
+    // let mainUrl = message.url;
+  }
+});
 
+//reserv start
 document.onreadystatechange = () => {
   if (document.readyState == "complete") {
     console.log("completed");
     initapp();
-    chrome.runtime.sendMessage({ command: "getUrl" }, (response) => {
-      resp = response;
-      console.log(resp);
-    });
   }
 };
 
-function addItem(stock, qty, days, hours) {
-  const table = document.querySelector(".table");
+function addItem(stock, qty, sz, days, hours) {
+  const table = document.querySelector(".block__table");
   const item = document.createElement("div");
-  item.classList.add("rows");
+
   const stockName = document.createElement("p");
   const qtyOnStocks = document.createElement("p");
   const deliveryTime = document.createElement("p");
+  if (sz) {
+    itemSize = document.createElement("p");
+    itemSize.classList.add("rows__size");
+    item.classList.add("rows__size-column");
+  } else null;
+  item.classList.add("rows");
+  qtyOnStocks.classList.add("rows__qty");
 
   table.appendChild(item);
   item.appendChild(stockName).textContent = `${stock}:`;
   item.appendChild(qtyOnStocks).textContent = `${qty} шт.`;
+  if (sz) {
+    item.appendChild(itemSize).textContent = `р. ${sz}`;
+  }
   item.appendChild(deliveryTime).textContent = `${days} д. ${hours} ч.`;
 }
 
 // removing old blocks on refresh
 function removeOldBlocks() {
-  const list = document.querySelectorAll(".injected-block");
-  for (const element of list) {
+  const oldBlocks = document.querySelectorAll(".injected-block");
+  for (const element of oldBlocks) {
     element.remove();
   }
 }
 
-function initapp() {
+async function initapp(mainUrl) {
   let stores;
   let indexUrl = window.location.href;
   let id = indexUrl.match(/\/(\d+)+[\/]?/);
@@ -41,30 +54,20 @@ function initapp() {
     "https://static-basket-01.wb.ru/vol0/data/stores-data.json";
   const url = `https://card.wb.ru/cards/detail?appType=1&curr=rub&appType=1&curr=rub&dest=-1257786&spp=32&nm=${id[1]}`;
 
-  console.log(id);
-  //toDo
-  let wbRegex;
-  let stockRegex;
-
-  fetch(storesDataUrl)
+  await fetch(storesDataUrl)
     .then((resp) => resp.json())
     .then((resp) => {
       return (stores = resp);
     })
     .catch((error) => console.log(error));
 
-  fetch(url, {
+  await fetch(url, {
     method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
   })
     .then((res) => res.json())
     .then((data) => {
-      console.log(data);
-      let article = document.querySelector(".product-page__aside-sticky");
-      if (article) {
+      let targetBlock = document.querySelector(".product-page__aside-sticky");
+      if (targetBlock) {
         if (document.querySelectorAll(".injected-block")) {
           removeOldBlocks();
         }
@@ -77,42 +80,36 @@ function initapp() {
           "injected-block"
         );
 
-        // create SPP -internal wrapper and header
+        // create SPP block -internal wrapper and header
         const wrapperSpp = document.createElement("div");
         wrapperSpp.classList.add("seller-info__header", "block__header");
         wrapperSpp.textContent = `Скидка постоянного покупателя`;
+
         const headerSpp = document.createElement("div");
         headerSpp.classList.add("block__title");
-        headerSpp.textContent = `До СПП:  ${
+        headerSpp.textContent = `Цена до СПП:  ${
           data.data.products[0].extended?.basicPriceU / 100 ||
           data.data.products[0].priceU / 100 ||
           0
-        } р. / СПП: ${
-          data.data.products[0].extended?.clientSale || 0
+        } р. / СПП: ${data.data.products[0].extended?.clientSale || 0} %`;
 
-          // (
-          //   100 -
-          //   ((data.data.products[0].extended?.basicPriceU / 100) * 100) /
-          //     (data.data.products[0].salePriceU / 100)
-          // ).toFixed(2)
-        } %`;
-
-        //create new block
+        //create warehouse stocks block
         const block = document.createElement("div");
         block.classList.add(
           "product-page__seller-wrap",
           "section-border",
           "injected-block"
         );
-        // create blcok - internal wrapper and header
+        // create warehouse stocks block - internal wrapper and header
         const wrapper = document.createElement("div");
         wrapper.classList.add("seller-info__header", "block__header");
         wrapper.textContent = `Остатки на складах`;
         const header = document.createElement("div");
         header.classList.add("block__title");
-        header.textContent = `Доставка со склада - ${stores
+        header.textContent = `Доставят из - ${stores
           .map((store) => {
-            if (store.id === data.data.products[0].wh) return store.name;
+            if (store.id === data.data.products[0].wh)
+              return store.name.replace(" WB", "");
           })
           .join("")} за ${Math.floor(
           (data.data.products[0].time1 + data.data.products[0].time2) / 24
@@ -122,34 +119,35 @@ function initapp() {
 
         //table with stocks
         const table = document.createElement("div");
-        table.className = "table";
+        table.className = "block__table";
 
         //adding spp on page
-        article.prepend(spp);
+        targetBlock.prepend(spp);
         spp.append(wrapperSpp);
         wrapperSpp.append(headerSpp);
         //adding stocks on page
-        article.prepend(block);
+        targetBlock.prepend(block);
         block.append(wrapper);
         wrapper.append(header);
         header.append(table);
 
-        data.data.products[0].sizes[0].stocks.map((element) => {
-          const storeName = stores
-            .map((store) => {
-              console.log(element.wh);
-              if (store.id === element.wh) return store.name;
-            })
-            .join("");
+        data.data.products[0].sizes.map((size) => {
+          let sz = size.name;
+          size.stocks.map((stock) => {
+            const storeName = stores
+              .map((store) => {
+                if (store.id === stock.wh) return store.name.replace(" WB", "");
+              })
+              .join("");
 
-          addItem(
-            storeName,
-            element.qty,
-            (days = Math.floor((element.time1 + element.time2) / 24)),
-            (hours = (element.time1 + element.time2) % 24)
-          );
-
-          console.log(element);
+            addItem(
+              storeName,
+              stock.qty,
+              sz,
+              (days = Math.floor((stock.time1 + stock.time2) / 24)),
+              (hours = (stock.time1 + stock.time2) % 24)
+            );
+          });
         });
       }
     })
@@ -160,11 +158,5 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   if (message.action === "restartContentScript") {
     console.log("restart");
     initapp();
-  }
-});
-
-chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
-  if (message.action === "getUrl") {
-    console.log("get url");
   }
 });

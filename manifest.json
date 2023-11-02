@@ -3,12 +3,14 @@
     "name": "Market Papa",
     "description": "Market Papa test extension for WB",
     "version": "1.0",
-    "action": {
-      "default_popup": "hello.html",
-      "default_icon": "market-papa.png"
+    "icons": {
+      "16": "images/market-papa_16.png",
+      "128": "images/market-papa_128.png"
     },
-    "permissions": ["webRequest", "activeTab", "storage", "unlimitedStorage", "tabs",
-        "scripting", "notifications","webNavigation"],
+    "action": {
+      "default_popup": "hello.html"
+    },
+    "permissions": ["webRequest", "activeTab", "tabs"],
     "host_permissions": [
         "https://www.wildberries.ru/*",
         "https://wildberries.ru/*",
@@ -19,17 +21,17 @@
     "background": {
         "service_worker": "scripts/background.js",
 
-        "permissions": ["scripting","webNavigation","webRequest", "activeTab","tabs","notifications"],
-    "host_permissions": ["<all_urls>"]
+        "permissions": ["webRequest", "activeTab", "tabs"],
+        "host_permissions": [ "https://www.wildberries.ru/*",
+                              "https://wildberries.ru/*",
+                              "https://static-basket-01.wb.ru/*",
+                              "https://card.wb.ru/cards/*"
+                            ]
       },
 
     "content_scripts": [
-        {
-          "js": ["scripts/content.js"],
+        { "js": ["scripts/content.js"],
           "matches": [
-            "https://*.wildberries.ru/*",
-            "https://*.wb.ru/*",
-            "https://wildberries.ru/*",
             "https://www.wildberries.ru/*",
             "https://wildberries.ru/*",
             "https://static-basket-01.wb.ru/*",
@@ -37,8 +39,7 @@
           ],
           "run_at": "document_idle",
           "all-frames": true,
-          "css": ["content.css"]
-
+          "css": ["css/content.css"]
         }
       ]
   }
